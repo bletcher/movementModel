@@ -1,0 +1,4 @@
+git remote add origin https://github.com/bletcher/movementModel.git
+git config remote.origin.url git@github.com:bletcher/movementModel.git
+git pull -u origin master
+git push -u origin master
