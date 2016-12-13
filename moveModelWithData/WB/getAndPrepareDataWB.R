@@ -68,9 +68,9 @@ cdWB <- left_join(cdWB, sites, by = c("river","section","area"))
 cdWB$riverMeter <- ifelse( cdWB$survey == "shock" | cdWB$survey == "portableAntenna", cdWB$river_meter, cdWB$riverMeter )
 
 
-save(cdWB, file='/home/ben/movementModel/moveModelWithData/WB/cdForMovementModelWB.RData')
-
-
+save(cdWB, file='/home/ben/dataForModels/cdForMovementModelWB.RData')
+cdWB2 <- cdWB%>%filter(sampleNumber==20)
+save(cdWB2, file='/home/ben/movementModel/moveModelWithData/WB/temp.RData')
 
 
 
