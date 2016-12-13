@@ -1,3 +1,7 @@
+# data end up here: file='/home/ben/dataForModels/cdForMovementModelWB.RData')
+# to avoid problems with .gitignore not ignoring .RData files
+
+
 
 # to rebuild library:
 # install.packages("devtools")
@@ -69,8 +73,8 @@ cdWB$riverMeter <- ifelse( cdWB$survey == "shock" | cdWB$survey == "portableAnte
 
 
 save(cdWB, file='/home/ben/dataForModels/cdForMovementModelWB.RData')
-cdWB2 <- cdWB%>%filter(sampleNumber==20)
-save(cdWB2, file='/home/ben/movementModel/moveModelWithData/WB/temp.RData')
+#cdWB2 <- cdWB%>%filter(sampleNumber==20)
+#save(cdWB2, file='/home/ben/movementModel/moveModelWithData/WB/temp.RData')
 
 
 
