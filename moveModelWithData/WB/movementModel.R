@@ -14,15 +14,20 @@ nAdapt = 100
 nIter = 1000
 nBurn = 500
 
+cdWB <- cdWB %>% filter( knownZ ==1 )
+
+counts <- cdWB %>% group_by(tag) %>% summarize(n=n()) %>% arrange(desc(n))
+cdWB <- left_join(cdWB,counts) %>%
+        filter(n > 1)  # remove single observations 
+
 d <- cdWB %>% 
   group_by(tagIndex) %>%
   mutate( minOcc = min(sampleIndex), fOcc = (sampleIndex==minOcc)*1,
           maxOcc = max(sampleIndex), lOcc = (sampleIndex==maxOcc)*1
         )
-
 d$riverIndex <- as.numeric(factor(d$river))
 
-d <- d %>% filter( cohort == 2002 , species == "bkt")
+d <- d %>% filter(cohort == 2002 & species == 'bkt')
 
 evalRows <- which( d$lOcc == 0 )
 firstObsRows <- which( d$fOcc == 1 )
@@ -30,9 +35,8 @@ firstObsRows <- which( d$fOcc == 1 )
 nEvalRows <- length(evalRows)
 nFirstObsRows <- length(firstObsRows)
 
-
 nInd <- length(unique(d$tag))
-nOcc <- length(unique(d$sampleNumber))
+nOcc <- length(unique(d$sampleIndex))
 nRivers <- length(unique(d$river))
 nSeasons <- length(unique(d$season))
 
@@ -132,4 +136,4 @@ out <- jags(data = data,
 #    out[1]$sims.list$riverDATA[((out$mcmc.info$n.burn/out$mcmc.info$n.thin)+1),]
 
 runInfo <- list(nInd=nInd,nOcc=nOcc,nRivers=nRivers,nSeasons=nSeasons)
-save(out,runInfo,file=paste0(moveDir,"moveOut.RData"))
+save(out,runInfo,file=paste0(moveDir,"moveModOut.RData"))
