@@ -3,12 +3,12 @@
     
     # Priors and constraints
 
-    for( t in 1:nSeasons ) {
+    for( s in 1:nSeasons ) {
       for(r in 1:(nRivers)){
         for(r2 in 1:(nRivers)){
           
-          psiBeta[r,r2,t] ~ dnorm( 0,0.1 ) #1/2.25) 
-          psiBeta01[r,r2,t] <- exp( psiBeta[r,r2,t] )/( exp( psiBeta[r,r2,t] ) + 1 )
+          psiBeta[r,r2,s] ~ dnorm( 0,0.1 ) #1/2.25) 
+          psiBeta01[r,r2,s] <- exp( psiBeta[r,r2,s] )/( exp( psiBeta[r,r2,s] ) + 1 )
 
           # Note that with precision priors on psiBeta of 1/2.25 (value from the paper) estimates of psiBeta01 when r,r2,t sets have no transitions 
           # don't bump up against 0, but they are > 0 (~0.005). Smaller priors (<0.01) give spikey estimates of psiBeta01 with poor r-hats.

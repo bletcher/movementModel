@@ -14,7 +14,7 @@ nAdapt = 100
 nIter = 1000
 nBurn = 500
 
-cdWB <- cdWB %>% filter( knownZ ==1 )
+cdWB <- cdWB %>% filter( knownZ == 1 )
 
 counts <- cdWB %>% group_by(tag) %>% summarize(n=n()) %>% arrange(desc(n))
 cdWB <- left_join(cdWB,counts) %>%
@@ -27,7 +27,7 @@ d <- cdWB %>%
         )
 d$riverIndex <- as.numeric(factor(d$river))
 
-d <- d %>% filter(cohort == 2002 & species == 'bkt')
+d <- d %>% filter( species == 'bkt')
 
 evalRows <- which( d$lOcc == 0 )
 firstObsRows <- which( d$fOcc == 1 )
@@ -46,12 +46,12 @@ cat("
     
     # Priors and constraints
 
-    for( t in 1:nSeasons ) {
+    for( s in 1:nSeasons ) {
       for(r in 1:(nRivers)){
         for(r2 in 1:(nRivers)){
           
-          psiBeta[r,r2,t] ~ dnorm( 0,0.1 ) #1/2.25) 
-          psiBeta01[r,r2,t] <- exp( psiBeta[r,r2,t] )/( exp( psiBeta[r,r2,t] ) + 1 )
+          psiBeta[r,r2,s] ~ dnorm( 0,0.1 ) #1/2.25) 
+          psiBeta01[r,r2,s] <- exp( psiBeta[r,r2,s] )/( exp( psiBeta[r,r2,s] ) + 1 )
 
           # Note that with precision priors on psiBeta of 1/2.25 (value from the paper) estimates of psiBeta01 when r,r2,t sets have no transitions 
           # don't bump up against 0, but they are > 0 (~0.005). Smaller priors (<0.01) give spikey estimates of psiBeta01 with poor r-hats.
@@ -112,7 +112,7 @@ inits <- function(){
   list(psiBeta=array(rnorm(nRivers^2*nSeasons,0,2.25),c(nRivers,nRivers,nSeasons)))
 }
 
-params <- c("psiBeta01", "riverDATA")
+params <- c("psiBeta01")
 
 out <- jags(data = data,
             inits = inits,
@@ -136,4 +136,4 @@ out <- jags(data = data,
 #    out[1]$sims.list$riverDATA[((out$mcmc.info$n.burn/out$mcmc.info$n.thin)+1),]
 
 runInfo <- list(nInd=nInd,nOcc=nOcc,nRivers=nRivers,nSeasons=nSeasons)
-save(out,runInfo,file=paste0(moveDir,"moveModOut.RData"))
+save(d,data,out,runInfo,file=paste0(moveDir,"moveModOut.RData"))
