@@ -10,7 +10,8 @@ setwd(moveDir)
 load(file='/home/ben/dataForModels/cdForMovementModelWB.RData')
 
 # get movement model output
-speciesIn <- 'bkt'
+load( file=paste0(moveDir,"runInfo.RData") )
+speciesIn <- runInfo$speciesIn
 load( file=paste0(moveDir,"moveModOut_", speciesIn, ".RData") )
 
 # Fill in missing observations of location for all rows in cdWB
@@ -29,6 +30,7 @@ iter <- 1
 
 trans <- array(0,c(runInfo$nRivers,runInfo$nRivers))
 
+cdWB$pTrans <- NA
 cdWB$riverPred <- NA
 cdWB$riverPred[1] <- as.numeric( cdWB$riverOrdered[1] )
 
@@ -48,5 +50,8 @@ for ( i in 1:(nrow(cdWB)-1) ){
 
 cdWB <- cdWB %>% group_by(tag) %>% mutate(lagR = lead(riverPred),trans=paste0(riverPred,lagR))
 table(cdWB$trans)
-head(data.frame(cdWB[430:580,c('tag','season',"river","riverOrdered","riverPred","enc","lOcc","pTrans","trans")]),100)
+head(data.frame(cdWB[11411:11631,c('tag',"sampleIndex",'season',"river","riverOrdered","riverPred","enc","lOcc","pTrans","trans")]),100)
 
+which(cdWB$trans==34)
+
+cdWB[cdWB$tag=="1bf188a369",]

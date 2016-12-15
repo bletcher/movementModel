@@ -47,7 +47,7 @@ nFirstObsRows <- length(firstObsRows)
 
 nInd <- length(unique(d$tag))
 nOcc <- length(unique(d$sampleIndex))
-nRivers <- length(unique(d$river))
+nRivers <- length(unique(d$river)) - 1 # -1 for NA
 nSeasons <- length(unique(d$season))
 
 ###
@@ -66,7 +66,7 @@ inits <- function(){
   list(psiBeta=psiBetaInits)
 }
 
-params <- c("psiBeta01")
+params <- c("psiBeta","psiBeta01")
 
 out <- jags(data = data,
             inits = inits,
@@ -96,11 +96,12 @@ out <- jags(data = data,
 # nIters = (nIter+nBurnin)/nThin
 #
 # there is a non-zero prob of transitioning based on priors (see above), even for impossible transistions (WB->OB), 
-# so provide a cuttoff (0.005, see hist below) below which probs are 0
+# so provide a cuttoff (0.0075, see hist below) below which probs are 0
 # hist(tmp[,4,1,])
 rm(transProb)
-transProb <- fillPsiBeta01(1,0.0075,data,out)
+transProb <- fillPsiBeta01(1,0.01,data,out)
 
 runInfo <- list(nInd=nInd,nOcc=nOcc,nRivers=nRivers,nSeasons=nSeasons, speciesIn=speciesIn, cohortsIn=cohortsIn )
-save(d,data,out,transProb,runInfo,file=paste0(moveDir,"moveModOut_", speciesIn, ".RData"))
+save(runInfo,file=paste0(moveDir,"runInfo.RData"))
+save(d,data,out,transProb,file=paste0(moveDir,"moveModOut_", speciesIn, ".RData"))
 

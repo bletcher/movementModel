@@ -1,4 +1,3 @@
-
     model {
     
     # Priors and constraints
@@ -21,6 +20,11 @@
       psiBeta[2,4,s] <- -6
       psiBeta[3,4,s] <- -6
       psiBeta[4,4,s] ~ dnorm( 0,0.1 )
+      
+      psiBeta01[1,4,s] <- exp( psiBeta[1,4,s] )/( exp( psiBeta[1,4,s] ) + 1 )
+      psiBeta01[2,4,s] <- exp( psiBeta[2,4,s] )/( exp( psiBeta[2,4,s] ) + 1 )
+      psiBeta01[3,4,s] <- exp( psiBeta[3,4,s] )/( exp( psiBeta[3,4,s] ) + 1 )
+      psiBeta01[4,4,s] <- exp( psiBeta[4,4,s] )/( exp( psiBeta[4,4,s] ) + 1 )
     }
 
     ############################

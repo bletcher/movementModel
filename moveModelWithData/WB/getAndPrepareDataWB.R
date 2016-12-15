@@ -21,8 +21,9 @@ cdWB <- createCoreData(sampleType = "electrofishing", #"stationaryAntenna","port
   createCmrData( maxAgeInSamples=20, inside=F) %>% 
   addSampleProperties() %>%
   addEnvironmental() %>%
-  addKnownZ() %>%
-  fillSizeLocation()
+  addKnownZ() 
+
+  #fillSizeLocation()
 
 # get sites table
 sitesIn <- data.frame(tbl(conDplyr,"data_sites") )
@@ -77,7 +78,7 @@ save(cdWB, file='/home/ben/dataForModels/cdForMovementModelWB.RData')
 #save(cdWB2, file='/home/ben/movementModel/moveModelWithData/WB/temp.RData')
 
 
-
+# run to here for movement model
 
 
 
