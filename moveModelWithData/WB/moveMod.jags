@@ -5,7 +5,7 @@
 
     for( s in 1:nSeasons ) {
       for(r in 1:(nRivers)){
-        for(r2 in 1:(nRivers)){
+        for(r2 in 1:(nRivers-1)){
           
           psiBeta[r,r2,s] ~ dnorm( 0,0.1 ) #1/2.25) 
           psiBeta01[r,r2,s] <- exp( psiBeta[r,r2,s] )/( exp( psiBeta[r,r2,s] ) + 1 )
@@ -15,7 +15,12 @@
           # 0.1 is a reasonable compromise. Alternavitvely could stick with 1/2.25 (which samples better) and convert estimates of < 0.005 to 0
 
         }
-      }
+      }  
+    # set transitions into OB (#4) to 0
+      psiBeta[1,4,s] <- -6
+      psiBeta[2,4,s] <- -6
+      psiBeta[3,4,s] <- -6
+      psiBeta[4,4,s] ~ dnorm( 0,0.1 )
     }
 
     ############################
