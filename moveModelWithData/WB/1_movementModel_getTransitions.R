@@ -14,7 +14,7 @@ load(file='/home/ben/dataForModels/cdForMovementModelWB.RData')
 ###
 # Variables to change
 speciesIn <- 'bkt'
-cohortsIn <- c(2002) #sort(unique(cdWB$cohort)) # for all cohorts
+cohortsIn <- sort(unique(cdWB$cohort)) # for all cohorts
 
 nAdapt = 100
 nIter = 1000
