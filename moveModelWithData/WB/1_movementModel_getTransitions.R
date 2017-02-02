@@ -2,14 +2,14 @@ library(tidyverse)
 library(jagsUI)
 
 rm(list = ls())
-source('/home/ben/movementModel/moveModelWithData/moveModFunctions.R')
+source('/home/ben/linkedModels/movementModel/moveModelWithData/moveModFunctions.R')
 
 ## defining data section ##
 
-moveDir <- "/home/ben/movementModel/moveModelWithData/WB/"
+moveDir <- "/home/ben/linkedModels/movementModel/moveModelWithData/WB/"
 setwd(moveDir)
 
-load(file='/home/ben/dataForModels/cdForMovementModelWB.RData')
+load(file='/home/ben/linkedModels/dataForModels/cdForMovementModelWB.RData')
 
 ###
 # Variables to change

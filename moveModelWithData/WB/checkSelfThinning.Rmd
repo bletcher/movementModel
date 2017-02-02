@@ -1,0 +1,80 @@
+```{r, message=FALSE}
+library(tidyverse)
+library(jagsUI)
+
+rm(list = ls())
+source('/home/ben/linkedModels/movementModel/moveModelWithData/moveModFunctions.R')
+
+## defining data section ##
+
+moveDir <- "/home/ben/linkedModels/movementModel/moveModelWithData/WB/"
+setwd(moveDir)
+
+load(file='/home/ben/linkedModels/dataForModels/cdForMovementModelWB.RData')
+
+cdWB$isYOY <- ifelse(cdWB$cohort == cdWB$year,1,0)
+```
+
+
+Group by year/season. 
+Plotting mean biomass against the count
+```{r, message=FALSE, warning=FALSE}
+bS <- cdWB %>%
+  filter(!is.na(observedLength)) %>%
+  group_by(isYOY,species,river,season,year) %>%
+  summarize( biomass = mean(observedWeight,na.rm=T),
+             count = n() ) %>%
+  select(biomass,count,season,year)
+
+ggplot(filter(bS, count>5  & isYOY & !is.na(river)), aes(biomass,count,color=species)) +
+  geom_point() +
+  geom_smooth(method="lm", se=F) +
+  scale_y_log10() +
+  scale_x_log10("Mean biomass") +
+  ggtitle("YOY") +
+  facet_grid(river~season, scales="free")
+
+ggplot(filter(bS, count>5  & !isYOY & !is.na(river)), aes(biomass,count,color=species)) +
+  geom_point() +
+  geom_smooth(method="lm", se=F) +
+  scale_y_log10() +
+  scale_x_log10("Mean biomass") +
+  ggtitle("not YOY") +
+  facet_grid(river~season, scales="free")
+
+```
+
+Group by year/season/section
+Plotting mean biomass against the count
+```{r}
+bS2 <- cdWB %>%
+  filter(!is.na(observedLength)) %>%
+  group_by(isYOY,species,river,season,year,section) %>%
+  summarize( biomass = mean(observedWeight,na.rm=T),
+             count = n() ) %>%
+  select(biomass,count,isYOY,species,river,season,year,section) #%>%
+  #filter( count < 100 ) # get some big #s, need to see from where
+
+for (spp in unique(bS2$species)){
+ g1 <-  ggplot(filter(bS2, species == spp & count>5  & isYOY & !is.na(river)), aes(biomass,count,color=species)) +
+    geom_point() +
+    geom_smooth(method="lm", se=F) +
+    scale_y_log10() +
+    scale_x_log10("Mean biomass") +
+    ggtitle(paste0(spp,", YOY")) +
+    facet_grid(river ~ species + season, scales="free")
+ 
+ print(g1)
+  
+ g2 <-  ggplot(filter(bS2, species == spp & count>5  & !isYOY & !is.na(river)), aes(biomass,count,color=factor(year))) +
+    geom_point() +
+    geom_smooth(method="lm", se=F) +
+    scale_y_log10() +
+    scale_x_log10("Mean biomass") +
+    ggtitle(paste0(spp,", not YOY")) +
+    facet_grid(river ~ species + season, scales="free")
+ 
+  print(g2)
+}
+```
+

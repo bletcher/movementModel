@@ -3,16 +3,20 @@ library(jagsUI)
 
 rm(list = ls())
 
-moveDir <- "/home/ben/movementModel/moveModelWithData/WB/"
+source('/home/ben/linkedModels/movementModel/moveModelWithData/moveModFunctions.R')
+
+moveDir <- "/home/ben/linkedModels/movementModel/moveModelWithData/WB/"
 setwd(moveDir)
 
 # get original data
-load(file='/home/ben/dataForModels/cdForMovementModelWB.RData')
+load(file='/home/ben/linkedModels/dataForModels/cdForMovementModelWB.RData')
 
 # get movement model output
 load( file=paste0(moveDir,"runInfo.RData") )
 speciesIn <- runInfo$speciesIn
 load( file=paste0(moveDir,"moveModOut_", speciesIn, ".RData") )
+
+nItersToRun <- 5
 
 # Fill in missing observations of location for all rows in cdWB
 #
@@ -24,8 +28,6 @@ cdWB <- cdWB %>%
           maxOcc = max(sampleIndex), lOcc = (sampleIndex==maxOcc)*1,
         #  lastObsIsOBT = (lOcc == 1 & ( riverOrdered == 'wb obear') ),
           encObsIsOB = (enc == 1 & ( riverOrdered == 'wb obear') )
-          
-          
          )
 
 # What sample# is the last obs in O'Bear for each fish?
@@ -37,50 +39,25 @@ lastOB <- cdWB %>%
 cdWB <- left_join( cdWB, lastOB )
 
 # filter to species and cohorts used in estimation
-cdWB <- cdWB %>% filter( species %in% runInfo$speciesIn, cohort %in% runInfo$cohortsIn )
+cdWBPred <- cdWB %>% filter( species %in% runInfo$speciesIn, cohort %in% runInfo$cohortsIn ) %>%
+                     select( tagIndex,sampleIndex,season,species,riverOrdered,enc,fOcc,lOcc,maxSampNumOB )# %>%
+                  #   .[1:1000,]
 
-iter <- 1
 
-trans <- array(0,c(runInfo$nRivers,runInfo$nRivers))
-
-cdWB$pTrans <- NA
-cdWB$riverPred <- NA
-cdWB$riverPred[1] <- as.numeric( cdWB$riverOrdered[1] )
-
-cdWB$flag <- NA
-
-for ( i in 1:(nrow(cdWB)-1) ){
-  if(i %% 1000 == 0) print(i)
-
-  # if encountered next occ, just get river from the next occ 
-  if( cdWB$enc[i + 1] == 1 ){
-    cdWB$riverPred[i + 1] <- as.numeric( cdWB$riverOrdered[i + 1] )
-    cdWB$flag[i] <- 1
-  }
-  # if not encountered next occ and not the last occ this occ, then can transition
-  else if( cdWB$enc[i + 1] == 0 & cdWB$lOcc[i] == 0 ){
-    cdWB$riverPred[i + 1] <- which(rmultinom( 1, 1, prob = transProb[ iter,cdWB$riverPred[i],,cdWB$season[i] ] ) == 1)
-    cdWB$pTrans[i] <- transProb[ iter,cdWB$riverPred[i],cdWB$riverPred[i+1],cdWB$season[i] ] # for checking
-    
-    cdWB$flag[i] <- 2
-    
-    # fix river to OB if the last OB obs and the fish was not caught
-    # maxSampNumOB is -Inf if fish never in OB, finite value is last observed OB sampleNum
-    if( cdWB$enc[i + 1] == 0 & is.finite(cdWB$maxSampNumOB[i]) & cdWB$sampleIndex[i] < cdWB$maxSampNumOB[i] ) {
-      cdWB$riverPred[i + 1] <- 4 
-      cdWB$pTrans[i] <- 0
-      
-      cdWB$flag[i] <- 3
-    }
-  }
-}
+iters <- sort(sample((1:out$mcmc.info$n.samples),nItersToRun))
+cdWBPredByIter <- getRiverPred( cdWBPred,iters )
 
 # check transitions
-cdWB <- cdWB %>% group_by(tag) %>% mutate(lagR = lead(riverPred),trans=paste0(riverPred,lagR))
-table(cdWB$trans)
-#head(data.frame(cdWB[1:11631,c('tag',"tagIndex","sampleIndex",'season',"river","riverOrdered","enc","encObsIsOB","maxSampNumOB")]),20)
+cdWBPredByIter <- cdWBPredByIter %>% group_by(tagIndex) %>% mutate(lagR = lead(riverPred),trans=paste0(riverPred,lagR))
+table(cdWBPredByIter$trans)
 
-head(data.frame(cdWB[1:11631,c('tag',"tagIndex","sampleIndex",'season',"river","riverOrdered","riverPred","enc","lOcc","encObsIsOB","maxSampNumOB","pTrans","trans","flag")]),20)
+save(cdWBPredByIter,file=paste0(moveDir,"moveModOutwPred_", speciesIn, ".RData"))
 
-which(cdWB$trans==14)
+tmp <- 
+cdWBPredByIter %>%
+  group_by(iter) %>%
+  nest()
+
+#head(data.frame(cdWBPred[110:11631,c('tag',"tagIndex","sampleIndex",'season',"river","riverOrdered","riverPred","enc","lOcc","encObsIsOB","maxSampNumOB","pTrans","trans","flag")]),20)
+#which(cdWBPred$trans==14)
 
