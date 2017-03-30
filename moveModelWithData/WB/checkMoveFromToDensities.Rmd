@@ -1,18 +1,28 @@
 ---
 title: "Untitled"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r, message=FALSE}
 library(tidyverse)
+library(getWBData)
 library(modelr)
 library(jagsUI)
+```
 
+
+
+```{r}
 rm(list = ls())
+#reconnect()
+```
 
+```{r}
 source('/home/ben/linkedModels/movementModel/moveModelWithData/moveModFunctions.R')
 
-# for now unitl it's in the package
+# for now until it's in the package
 source('/home/ben/linkedModels/movementModel/moveModelWithData/WB/addSectionProperties.R')
 
 ## defining data section ##
@@ -32,7 +42,7 @@ cdWB <- addSectionProperties(cdWB) #adds in section widths. will be in the getWB
 
 
 #limit data to more than one obs per fish
-counts <- cdWB %>% group_by(tag) %>% summarize(n=n()) %>% arrange(desc(n))
+counts <- cdWB %>% group_by(tag) %>% summarize(n = n()) %>% arrange(desc(n))
 cdWB <- left_join(cdWB,counts) %>%
         filter(n > 1)  # remove single observations 
 
@@ -40,7 +50,7 @@ cdWB <- cdWB %>%
 #   select(tag,cohort,detectionDate,sampleIndex,river,section,area,observedLength)
    group_by(tagIndex) %>%
    mutate( 
-           lagRiver = lead(as.numeric(riverOrdered)),trans=paste0(as.numeric(riverOrdered),lagRiver)
+           lagRiver = lead(as.numeric(riverOrdered)),trans = paste0(as.numeric(riverOrdered),lagRiver)
          )
 
 cdWB$isYOY <- ifelse(cdWB$cohort == cdWB$year,1,0)
@@ -82,6 +92,11 @@ ggplot(filter(cdWB), aes(as.factor(section), observedWeight)) +
   scale_y_log10() +
   facet_grid(river+isYOY~season, scales = "free")
 
+ggplot(filter(cdWB), aes(as.factor(section), widthToUse, shape = widthDataSource, color=factor(year))) +
+  geom_point() + 
+  #scale_y_log10() +
+  facet_grid(river+isYOY~season, scales = "free")
+
 # means by isYOY,river,year,season,section
 # this will be our 'raw' mean biomass and counts
 byYRYSS <- cdWB %>% 
@@ -98,16 +113,16 @@ byYRYSS <- cdWB %>%
 hist(byYRYSS$meanBiomassByAreaYRYSS)
 hist(byYRYSS$meanWidthToUse)
 filter(byYRYSS,meanWidthToUse <0.25)
-filter(cdWB,meanWidthToUse < 0.1)#%in% c(0.03230321,0.01))
-table(cdWB$meanWidthToUse)
+#filter(cdWB,meanWidthToUse < 0.1)#%in% c(0.03230321,0.01))
+#table(cdWB$meanWidthToUse)
 ```
 ##make some  plots of our means
 ```{r}
 ggplot(byYRYSS, aes(meanBiomassByAreaYRYSS, meanBiomassYRYSS, color = factor(year))) +
   geom_point() +
-  facet_grid(section~river)
+  facet_grid(~river,scales = "free")
 
-ggplot(byYRYSS, aes(section, meanBiomassYRYSS, color = factor(year))) +
+ggplot(byYRYSS, aes(section, meanBiomassByAreaYRYSS, color = factor(year))) +
   geom_point() +
   geom_line() +  
   facet_grid(river+isYOY~season, scales = "free")
@@ -117,7 +132,7 @@ ggplot(byYRYSS, aes(section, nYRYSS, color = factor(year))) +
   geom_line() +  
   facet_grid(river+isYOY~season, scales = "free")
 ```
-
+## Standardize within sections across years
 ```{r}
 # standardize within sections across years
 # using ideas from the 'many models' section of 'R for Data Science' book
@@ -189,6 +204,7 @@ cdWB <- left_join(cdWB,select(rNNext, -meanBiomassYRYSS,-nYRYSS), by = c("lagSec
 
 ```        
 
+##Make plots using the standardized biomasses and counts
 ```{r}
 
 ggplot(filter(cdWB,residB<100,residB>-100), aes(residB,moved01)) +
@@ -210,7 +226,7 @@ ggplot(cdWB, aes(residB,color=factor(moved01))) +
 ggplot(cdWB, aes(residBNext,moved01)) +
   geom_jitter(size = 0.1,height = 0.15) +
   stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
-  facet_grid(species~river, scales="free")
+  facet_grid(species~river, scales = "free")
 
 summary( glm( moved01 ~ residBNext, family = "binomial", data = cdWB ) )
 
