@@ -1,0 +1,129 @@
+---
+title: "Untitled"
+output: html_document
+---
+```{r}
+library(tidyverse)
+```
+
+
+```{r read in data}
+
+wb <- read.csv('wbCSV.csv', header = T, stringsAsFactors = F); wb$section <- as.numeric(wb$section)
+ob <- read.csv('obCSV.csv', header = T, stringsAsFactors = F); #ob$section <- as.numeric(as.character(ob$section))
+m <- read.csv('mCSV.csv', header = T, stringsAsFactors = F); #m$section <- as.numeric(as.character(m$section))
+j <- read.csv('jCSV.csv', header = T, stringsAsFactors = F); j$quarter <- as.numeric(j$quarter) # there is a quarter "5 pool"
+
+transects <- bind_rows(wb,ob,m,j)
+transects$date <- as.Date(transects$date, "%m/%d/%Y")
+transects$year <- year(transects$date)
+
+# fix based on volumeDis data graphs
+transects <- transects %>% filter( !(river == 'wb jimmy' & section == 5 & year == 2007 ))
+transects$section <- ifelse(transects$river == 'wb jimmy' & transects$section < 5 & transects$year == 2007,
+                            transects$section + 1, transects$section)
+
+
+```
+
+```{r calc volumes}
+
+transects$wD <- transects$width * transects$depth
+
+vol1 <- transects %>%
+  group_by(river,year,date,section,quarter) %>%
+  summarize( volumeQ = sum(wD), n = n() )
+
+vol <- vol1 %>%
+  group_by(river,year,date,section) %>%
+  summarize( volume = sum(volumeQ), n = n() )
+
+```
+
+```{r raw data}
+
+ggplot( vol, aes(section, volume, color = factor(year))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(~river)
+
+ggplot( vol, aes(section, volume, color = factor(year))) +
+  geom_point() +
+  geom_line() +
+  facet_grid(river~date)
+
+```
+Link in discharge for transect dates and scale either by 1) discharge or 20 z-score of discharge within a river/year
+```{r scale to flow}
+  reconnect()  
+
+  flow <- data.frame(tbl(conDplyr, "data_daily_discharge")) %>%
+    #filter(date %in% samples$date) %>%
+    select(date, river, discharge)
+
+  #scale by discharge
+  vol <- left_join(vol,flow) %>% mutate( volumeDis = volume/discharge )
+  
+  ggplot( vol, aes(section, volumeDis, color = factor(year))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales='free')
+  
+  #trends over time  
+  ggplot( vol, aes(year, volumeDis, color = factor(section))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales='free')
+  
+  # scale by z-score
+  means <- vol %>%
+    group_by(river,year) %>%
+    summarize( meanV = mean(volume), stdV = sd(volume) )
+  
+  vol <- vol %>%
+    left_join(.,means) %>%
+    mutate( volumeZ = (volume - meanV)/stdV )
+  
+  ggplot( vol, aes(section, volumeZ, color = factor(year))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales = 'free')
+
+  #trends over time  
+  ggplot( vol, aes(year, volumeZ, color = factor(section))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales = 'free')
+  
+```
+Linearly interpolate missing years
+```{r}
+library(zoo)
+
+vol <- vol %>% 
+  group_by(river,section) %>%
+  complete(nesting(river,section), year = min(vol$year):max(vol$year) ) %>%
+  mutate( volumeDis = na.approx(volumeDis, rule = 2),
+          volumeZ = na.approx(volumeZ, rule = 2) )
+
+  ggplot( vol, aes(section, volumeZ, color = factor(year))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales = 'free')
+  
+    #trends over time  
+  ggplot( vol, aes(year, volumeZ, color = factor(section))) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~river, scales = 'free')
+
+```
+
+
+
+```{r save data}
+
+save(transects, vol, file = 'transects.RData')
+
+```
+

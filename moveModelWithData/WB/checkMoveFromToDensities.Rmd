@@ -131,6 +131,24 @@ ggplot(byYRYSS, aes(section, nYRYSS, color = factor(year))) +
   geom_point() +
   geom_line() +  
   facet_grid(river+isYOY~season, scales = "free")
+
+
+ggplot(filter(cdWB,residB<100,residB>-100), aes(meanBiomassYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+  geom_jitter(size = 0.1,height = 0.15) +
+  #xlim(c(-20,21)) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
+  facet_grid(season~species, scales="free")
+
+ggplot(filter(cdWB,residB<100,residB>-100), aes(meanBiomassByAreaYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+  geom_jitter(size = 0.1,height = 0.15) +
+  #xlim(c(-20,21)) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
+  facet_grid(season~species, scales="free")
+
+ggplot(filter(cdWB,!is.na(moved01),species=="bkt"), aes(meanBiomassByAreaYRYSS,color=factor(moved01))) +
+  geom_freqpoly(bins=20) +
+  xlim(c(-1,25)) +
+  facet_grid(river~species+season, scales="free")
 ```
 ## Standardize within sections across years
 ```{r}
@@ -213,13 +231,42 @@ ggplot(filter(cdWB,residB<100,residB>-100), aes(residB,moved01)) +
   stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
   facet_grid(species~river, scales="free")
 
-summary( glm( moved01 ~ residB, family = "binomial", data = cdWB ) )
+summary( glm( moved01 ~ residB*factor(species), family = "binomial", data = cdWB ) )
+
+mod0 <- glm( moved01 ~ residB, family = "binomial", data = cdWB )
+mod1 <- glm( moved01 ~ residB*factor(species), family = "binomial", data = cdWB )
+mod2 <- glm( moved01 ~ residB*factor(species)*factor(season), family = "binomial", data = cdWB )
+mod3 <- glm( moved01 ~ residB*factor(species)*factor(season)*factor(river), family = "binomial", data = cdWB )
+mod4 <- glm( moved01 ~ residB*factor(species)*factor(season)*factor(river)*factor(isYOY), family = "binomial", data = cdWB )
+
+AIC(mod0,mod1,mod2,mod3,mod4)
+summary(mod3)
+
+ggplot(filter(cdWB,residB<100,residB>-100), aes(residB,moved01)) +
+  geom_jitter(size = 0.1,height = 0.15) +
+  #xlim(c(-20,21)) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
+  facet_grid(season~species, scales="free")
+
+ggplot(filter(cdWB,residB<100,residB>-100,!is.na(moved01),species=="bkt"), aes(residB,color=factor(moved01))) +
+  geom_freqpoly(bins=40) +
+  xlim(c(-20,21)) +
+  facet_grid(river~species+season, scales="free")
+
+summary( glm( moved01 ~ residBNext, family = "binomial", data = cdWB ) )
+
 summary(lm(residB ~ 0+factor(moved01)*species*river, data=cdWB))
+
 
 ggplot(cdWB, aes(residB,color=factor(moved01))) +
   geom_freqpoly() +
 #  xlim(c(-40,40)) +
   facet_grid(species~river)
+
+ggplot(filter(cdWB,residBNext<100,residBNext>-100,!is.na(moved01),species=="bkt"), aes(residBNext,color=factor(moved01))) +
+  geom_freqpoly(bins=40) +
+  xlim(c(-20,21)) +
+  facet_grid(river~species+season, scales="free")
 
 #t.test(residB ~ 0+factor(moved01), data=cdWB)
 
@@ -245,5 +292,24 @@ summary( glm( moved01 ~ residNNext, family = "binomial", data = cdWB ) )
 
 
 ```
+Check delta relative biomass of movers
+```{r}
 
+deltaBiomass <- 
+ggplot(filter(cdWB,residBNext<100,residBNext>-100,!is.na(moved01)), aes(biomassFrom - biomassTo,color=factor(moved01))) +
+  geom_density(adjust = 2) +
+  xlim(c(-20,20)) +
+  facet_grid(river~species+season, scales="free")
+
+ggsave(deltaBiomass, file="deltaBiomass.png", height = 6, width = 9)
+
+deltaResidBiomass <- 
+ggplot(filter(cdWB,residBNext<100,residBNext>-100), aes(residB - residBNext,color=factor(moved01))) +
+  geom_density(adjust = 2) +
+  xlim(c(-10,10)) +
+  facet_grid(river~species+season, scales="free")
+
+ggsave(deltaResidBiomass, file="deltaResidBiomass.png", height = 6, width = 9)
+
+```
 

@@ -99,7 +99,7 @@ function(data, defaultColumns = T, columnsToAdd = NULL, estimateWidthNA = T) {
 #    geom_point( ) +
 #    facet_wrap(~section,scales = 'free')
   
-  data <- left_join(data, select(widths,river,section,sampleName,widthToUse,widthDataSource), by = c("river",'section','sampleName'))
+  data <- left_join(data, select(widths,river,section,sampleName,widthToUse,widthDataSource,maximumDepth), by = c("river",'section','sampleName'))
   
   return(data)
 }
