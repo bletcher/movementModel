@@ -4,6 +4,8 @@ output: html_document
 ---
 ```{r}
 library(tidyverse)
+library(lubridate)
+library(getWBData)
 ```
 
 ```{r}
@@ -232,7 +234,8 @@ ggplot( vol, aes(volumeNAApprox,maxDepthNAApprox,color = factor(pool01)) ) +
   geom_point() +
   geom_vline( aes(xintercept = meanVolByRiver), data = volMeansByRiver ) +
   geom_hline( aes(yintercept = meanMaxDepthByRiver), data = volMeansByRiver ) +
-  facet_wrap(~river, scales = "free")
+  facet_wrap(~river, scales = "free") +
+  theme(legend.position = "none")
 
 #trends over time  
 ggplot( filter(vol,river == "west brook"), aes(year, pool01, color = factor(section))) +
@@ -240,7 +243,6 @@ ggplot( filter(vol,river == "west brook"), aes(year, pool01, color = factor(sect
     geom_line() +
     facet_wrap(~section) +
     theme(legend.position = "none")
-#          strip.text.x = element_blank())
 
 ```
 
@@ -255,13 +257,14 @@ load('cdWBForTransects.RData')
 cdWB <- left_join(cdWB,vol, by = c("river", "section", "year"))
 
 byYRYSS <- cdWB %>% 
-  group_by(isYOY,river,year,season,section) %>%
+  group_by(isYOY,river,year,season,section,species) %>%
   summarize( meanBiomassYRYSS = mean(observedWeight,na.rm = T),
              meanBiomassByVolZYRYSS = mean(observedWeight/(volumeZ), na.rm = T), 
              varBiomassByVolZYRYSS = var(observedWeight/(volumeZ), na.rm = T), 
              nYRYSS = n(),
-             meanVolZ = mean(volumeZ, na.rm = T) ) %>%
-  select(meanBiomassYRYSS,nYRYSS,meanBiomassByVolZYRYSS,varBiomassByVolZYRYSS,meanVolZ,isYOY,river,season,year,section)
+             meanVolZ = mean(volumeZ, na.rm = T),
+             sumBiomassYRYSS = sum(observedWeight,na.rm = T)) %>%
+  select(meanBiomassYRYSS,nYRYSS,meanBiomassByVolZYRYSS,varBiomassByVolZYRYSS,meanVolZ,sumBiomassYRYSS,isYOY,river,season,year,section,species)
 
 cdWB <- left_join(cdWB,byYRYSS)
 
@@ -296,6 +299,40 @@ ggplot(filter(byYRYSS, river == riverTmp & isYOY == isYOYTmp & section == sectio
   geom_line() + 
  # ylim(-100,100) +
   facet_wrap(~year)#, scales = "free")
+```
+
+SumOfBiomass consitent over years?
+```{r}
+riverTmp2 <- "wb jimmy"
+isYOYTmp2 <- 0
+seasonTmp2 <-  3
+speciesTmp2 <- "bkt"
+
+ggplot(filter(byYRYSS, river == riverTmp2 & isYOY == isYOYTmp2 & season == seasonTmp2 &  species == speciesTmp2), aes(year , sumBiomassYRYSS, color = factor(section))) +
+  geom_point( aes(size = nYRYSS)) +
+  geom_line() + 
+  ggtitle(paste0(riverTmp2,", ","isYOY = ",isYOYTmp2,", ",'season = ',seasonTmp2,", ",speciesTmp2)) +
+  facet_wrap(~section)#, scales = "free")
+
+
+```
+
+
+Look for relationships btw vol and biomass
+```{r}
+ggplot( filter( byYRYSS, year %in% c(2007,2008,2009,2012,2015) & season == 3 & isYOY == 0 & species == 'bkt'), aes(meanVolZ,meanBiomassYRYSS)) +
+  geom_point( aes( size = nYRYSS) ) +
+  geom_smooth( method = 'lm', se = F) +
+  facet_grid(season + year ~ river, scales = 'free')
+
+ggplot( filter( byYRYSS, year %in% c(2007,2008,2009,2012,2015) & season == 3 & isYOY == 0 & year == 2015), aes(meanVolZ,meanBiomassYRYSS)) +
+  geom_point( aes( size = nYRYSS) ) +
+  geom_smooth( method = 'lm', se = F) +
+  facet_grid(season + species ~ river, scales = 'free')
+
+ggplot( filter( byYRYSS, year %in% c(2007,2008,2009,2012,2015)), aes(meanVolZ,varBiomassByVolZYRYSS )) +
+  geom_point() +
+  facet_grid(season~river, scales = 'free')
 ```
 
 

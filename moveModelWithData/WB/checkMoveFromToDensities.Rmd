@@ -56,6 +56,7 @@ cdWB <- cdWB %>%
 cdWB$isYOY <- ifelse(cdWB$cohort == cdWB$year,1,0)
 cdWB$riverMoved <- ifelse(as.numeric(cdWB$riverOrdered) == cdWB$lagRiver,0,1)
 
+
 ```
 
 ##Join in mean biomass for current (biomassFrom) and next section (biomassTo)
@@ -82,6 +83,17 @@ cdWB$moved01PM <- ifelse(cdWB$section == cdWB$lagSection - 1 |
 
 #cdWB$sectionFactor <- factor( cdWB$section )
 ```
+Add in estimated section volumes
+```{r}
+load("/home/ben/linkedModels/movementModel/moveModelWithData/WB/transects.RData")
+
+cdWB <- left_join( cdWB, select(vol,river,section,year,volumeDis,volumeZ) )
+```
+
+```{r}
+save(cdWB, file = 'cdWBForTransects.RData')
+```
+
 
 In some initial analyses, fish seem to move to high biomass sections. Maybe these are just good sections that can carry high biomass. Try scaling within sections by average biomass over the study as a crude measure of habitat quality
 
@@ -104,25 +116,64 @@ byYRYSS <- cdWB %>%
   summarize( meanBiomassYRYSS = mean(observedWeight,na.rm = T),
              meanBiomassByAreaYRYSS = mean(observedWeight/(widthToUse + 0.01), na.rm = T), 
              varBiomassByAreaYRYSS = var(observedWeight/(widthToUse + 0.01), na.rm = T), 
+             meanBiomassByVolZYRYSS = mean(observedWeight/(volumeZ + 0.0001), na.rm = T), 
+             varBiomassByVolZYRYSS = var(observedWeight/(volumeZ + 0.0001), na.rm = T), 
              nYRYSS = n(),
-             meanWidthToUse = mean(widthToUse + 0.001, na.rm = T)) %>%
-  select(meanBiomassYRYSS,nYRYSS,meanBiomassByAreaYRYSS,varBiomassByAreaYRYSS,meanWidthToUse,isYOY,river,season,year,section)
+             meanWidthToUse = mean(widthToUse + 0.001, na.rm = T),
+             meanVolZ = mean(volumeZ + 0.0001, na.rm = T) ) %>%
+  select(meanBiomassYRYSS,nYRYSS,meanBiomassByAreaYRYSS,varBiomassByAreaYRYSS,meanBiomassByVolZYRYSS,varBiomassByVolZYRYSS,meanWidthToUse,meanVolZ,isYOY,river,season,year,section)
 
 #byYRYSS$meanBiomassByAreaYRYSS0 <- ifelse(is.nan(byYRYSS$meanBiomassByAreaYRYSS),NA,byYRYSS$meanBiomassByAreaYRYSS)
 
 hist(byYRYSS$meanBiomassByAreaYRYSS)
 hist(byYRYSS$meanWidthToUse)
-filter(byYRYSS,meanWidthToUse <0.25)
+hist(byYRYSS$meanVolZ)
+
 #filter(cdWB,meanWidthToUse < 0.1)#%in% c(0.03230321,0.01))
 #table(cdWB$meanWidthToUse)
 ```
-##make some  plots of our means
+##make some  plots of our means for byVol
+```{r}
+ggplot(byYRYSS, aes(meanBiomassByVolZYRYSS, meanBiomassYRYSS, color = factor(year))) +
+  geom_point() +
+  facet_grid(~river,scales = "free")
+
+ggplot(filter(byYRYSS, river == "west brook"), aes(section, meanBiomassByVolZYRYSS, color = factor(year))) +
+  geom_point() +
+  geom_line() + 
+  ylim(-100,100) +
+  facet_grid(river+isYOY~season, scales = "free")
+
+ggplot(byYRYSS, aes(section, nYRYSS, color = factor(year))) +
+  geom_point() +
+  geom_line() +  
+  facet_grid(river+isYOY~season, scales = "free")
+
+
+ggplot(filter(cdWB), aes(meanBiomassYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+  geom_jitter(size = 0.1,height = 0.15) +
+  #xlim(c(-20,21)) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
+  facet_grid(season~species, scales="free")
+
+ggplot(filter(cdWB), aes(meanBiomassByVolZYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+  geom_jitter(size = 0.1,height = 0.15) +
+  #xlim(c(-20,21)) +
+  stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
+  facet_grid(season~species, scales="free")
+
+ggplot(filter(cdWB,!is.na(moved01),species=="bkt"), aes(meanBiomassByAreaYRYSS,color=factor(moved01))) +
+  geom_freqpoly(bins=20) +
+  xlim(c(-1,25)) +
+  facet_grid(river~species+season, scales="free")
+```
+##make some  plots of our means for byArea
 ```{r}
 ggplot(byYRYSS, aes(meanBiomassByAreaYRYSS, meanBiomassYRYSS, color = factor(year))) +
   geom_point() +
   facet_grid(~river,scales = "free")
 
-ggplot(byYRYSS, aes(section, meanBiomassByAreaYRYSS, color = factor(year))) +
+ggplot(filter(byYRYSS, river == "west brook"), aes(section, meanBiomassByAreaYRYSS, color = factor(year))) +
   geom_point() +
   geom_line() +  
   facet_grid(river+isYOY~season, scales = "free")
@@ -133,13 +184,13 @@ ggplot(byYRYSS, aes(section, nYRYSS, color = factor(year))) +
   facet_grid(river+isYOY~season, scales = "free")
 
 
-ggplot(filter(cdWB,residB<100,residB>-100), aes(meanBiomassYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+ggplot(filter(cdWB), aes(meanBiomassYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
   geom_jitter(size = 0.1,height = 0.15) +
   #xlim(c(-20,21)) +
   stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
   facet_grid(season~species, scales="free")
 
-ggplot(filter(cdWB,residB<100,residB>-100), aes(meanBiomassByAreaYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
+ggplot(filter(cdWB), aes(meanBiomassByAreaYRYSS,moved01)) + # aes(meanBiomassByAreaYRYSS,moved01)) +
   geom_jitter(size = 0.1,height = 0.15) +
   #xlim(c(-20,21)) +
   stat_smooth(method = "glm", method.args = list(family = "binomial"), se = F) +
